@@ -1,0 +1,6 @@
+# Ignore Something...
+# markdown preview temporary file
+.markdown-preview.html
+
+# Don't Ignore...
+!.gitignore
