@@ -1,7 +1,22 @@
-ARG ELK_VERSION
+FROM centos
+MAINTAINER Tabuyos(Aaron Liew) <tabuyos@outlook.com>
 
-# https://www.docker.elastic.co/
-FROM docker.elastic.co/logstash/logstash:${ELK_VERSION}
+WORKDIR /opt/elkk/logstash
+COPY ./downloads/logstash .
 
-# Add your logstash plugins setup here
-# Example: RUN logstash-plugin install logstash-filter-json
+WORKDIR /opt/elkk/openjdk
+COPY ./downloads/openjdk .
+
+WORKDIR /app
+COPY ./logstash/config/start-logstash.sh .
+
+RUN groupadd -r elkk \
+	&& useradd -r -g elkk elkk \
+	&& chmod +x ./start-logstash.sh \
+	&& chown -R elkk:elkk /opt/elkk \
+	&& chown elkk:elkk ./start-logstash.sh
+
+ENV LOGSTASH_HOME=/opt/elkk/logstash PATH=$PATH:/opt/elkk/openjdk/bin
+EXPOSE 9600 5044
+USER elkk
+ENTRYPOINT ["sh", "-c", "./start-logstash.sh"]

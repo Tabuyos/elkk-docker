@@ -2,5 +2,8 @@
 # markdown preview temporary file
 .markdown-preview.html
 
+# download file
+/downloads
+
 # Don't Ignore...
 !.gitignore
