@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:$ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./elasticsearch/config/elasticsearch.yml
+        target: /usr/share/elasticsearch/config/elasticsearch.yml
+      # - type: bind
+      #   source: ./elasticsearch/config/docker-entrypoint.sh
+      #   target: /usr/local/bin/docker-entrypoint.sh
+      - type: volume
+        source: elasticsearch
+        target: /usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      ELASTIC_PASSWORD: changeme
+      discovery.type: single-node
+    networks:
+      - elkk
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:$ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./logstash/config/logstash.yml
+        target: /usr/share/logstash/config/logstash.yml
+        read_only: true
+      - type: bind
+        source: ./logstash/pipeline
+        target: /usr/share/logstash/pipeline
+        read_only: true
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    environment:
+      LS_JAVA_OPTS: "-Xmx256m -Xms256m"
+    networks:
+      - elkk
+    depends_on:
+      - elasticsearch
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:$ELK_VERSION
+    volumes:
+      - type: bind
+        source: ./kibana/config/kibana.yml
+        target: /usr/share/kibana/config/kibana.yml
+        read_only: true
+    ports:
+      - "5601:5601"
+    networks:
+      - elkk
+    depends_on:
+      - elasticsearch
+
+  zookeeper:
+    image: zookeeper:$ZK_VERSION
+    volumes:
+      - type: bind
+        source: ./zookeeper/config/zookeeper.cfg
+        target: /conf/zoo.cfg
+    ports:
+      - "2181:2181"
+      - "2888:2888"
+      - "3888:3888"
+    networks:
+      - elkk
+
+  kafka:
+    image: wurstmeister/kafka:${SCALA_VERSION}-${KAFKA_VERSION}
+    ports:
+      - "9092:9092"
+    volumes:
+      - type: bind
+        source: ./kafka/config/server.properties
+        target: /opt/kafka/config/server.properties
+      - type: bind
+        source: ./kafka/config/start-kafka-new.sh
+        target: /usr/bin/start-kafka.sh
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 192.168.22.33
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    networks:
+      - elkk
+    depends_on:
+      - zookeeper
+
+networks:
+  elkk:
+    driver: bridge
+
+volumes:
+  elasticsearch:
+    external: true
+    name: elasticsearch
